@@ -33,6 +33,9 @@ module.exports = appInfo => {
   // add your middleware config here
   config.middleware = [ 'locals', 'authUser' ];
 
+  // 版块
+  config.tabs = [[ 'share', '分享' ], [ 'ask', '问答' ], [ 'job', '招聘' ]];
+
   // add your user config here
   const userConfig = {
     // myAppName: 'egg',
@@ -70,6 +73,8 @@ module.exports = appInfo => {
       ignore: '/api/*/*',
     },
   };
+
+  config.list_topic_count = 20;
 
   return {
     ...config,

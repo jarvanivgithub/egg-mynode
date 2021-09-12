@@ -15,7 +15,9 @@
     "egg-view-ejs": "^2.0.1",
     "loader": "^2.1.1",
     "loader-builder": "^2.7.2",
-    "loader-koa": "^2.0.1"
+    "loader-koa": "^2.0.1",
+    "moment": "^2.29.1",
+    "utility": "^1.17.0"
   },
   "devDependencies": {
     "autod": "^3.0.1",

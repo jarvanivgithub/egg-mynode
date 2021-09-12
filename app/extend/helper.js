@@ -4,3 +4,12 @@ exports.staticFile = function(filePath) {
   }
   return this.app.config.site_static_host + filePath;
 };
+
+exports.tabName = function(tab) {
+  const pair = this.app.config.tabs.find(pair => {
+    return pair[0] === tab;
+  });
+  if (pair) {
+    return pair[1];
+  }
+};
