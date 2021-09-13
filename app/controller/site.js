@@ -95,8 +95,6 @@ class HomeController extends Controller {
       pageTitle: tabName && tabName + '版块',
     };
 
-    console.log('locals', locals);
-
     await this.ctx.render('index', locals, {
       layout: 'layout.html',
     });

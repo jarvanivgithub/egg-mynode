@@ -36,6 +36,14 @@ module.exports = appInfo => {
   // 版块
   config.tabs = [[ 'share', '分享' ], [ 'ask', '问答' ], [ 'job', '招聘' ]];
 
+  config.authUser = {
+    enable: true,
+    match: '/',
+  };
+
+  // 是否允许直接注册（否则只能走 github 的方式）
+  config.allow_sign_up = true;
+
   // add your user config here
   const userConfig = {
     // myAppName: 'egg',
@@ -68,6 +76,11 @@ module.exports = appInfo => {
     },
   };
 
+  config.passportLocal = {
+    usernameField: 'name',
+    passwordField: 'pass',
+  };
+
   config.security = {
     csrf: {
       ignore: '/api/*/*',
@@ -75,6 +88,9 @@ module.exports = appInfo => {
   };
 
   config.list_topic_count = 20;
+
+  // 每个 IP 每天可创建用户数
+  config.create_user_per_ip = 1000;
 
   return {
     ...config,

@@ -1,4 +1,6 @@
 const Service = require('egg').Service;
+const utility = require('utility');
+const uuid = require('uuid');
 
 class UserService extends Service {
   /*
@@ -22,6 +24,27 @@ class UserService extends Service {
    */
   getUsersByQuery(query, opt) {
     return this.ctx.model.User.find(query, '', opt).exec();
+  }
+
+  newAndSave(loginname, pass, email, avatar_url, active) {
+    const user = new this.ctx.model.User();
+    user.name = loginname;
+    user.loginname = loginname;
+    user.pass = pass;
+    user.email = email;
+    user.avatar = avatar_url;
+    user.active = active || false;
+    user.accessToken = uuid.v4();
+
+    return user.save();
+  }
+
+  makeGravatar(email) {
+    return (
+      'http://www.gravatar.com/avatar/' +
+      utility.md5(email.toLowerCase()) +
+      '?size=48'
+    );
   }
 }
 
