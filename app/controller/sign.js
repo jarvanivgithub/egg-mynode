@@ -78,6 +78,13 @@ class SignControll extends Controller {
     });
   }
 
+  async signout() {
+    const { ctx } = this;
+    ctx.session = null;
+    ctx.logout();
+    ctx.redirect('/');
+  }
+
 }
 
 module.exports = SignControll;

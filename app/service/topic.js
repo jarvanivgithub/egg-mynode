@@ -2,6 +2,34 @@ const Service = require('egg').Service;
 
 class TopicService extends Service {
   /*
+   * 根据主题ID获取主题
+   * @param {String} id 主题ID
+   */
+  async getTopicById(id) {
+    const topic = await this.ctx.model.Topic.findOne({ _id: id }).exec();
+    if (!topic) {
+      return {
+        topic: null,
+        author: null,
+        last_reply: null,
+      };
+    }
+
+    const author = await this.service.user.getUserById(topic.author_id);
+
+    let last_reply = null;
+    if (topic.last_reply) {
+      last_reply = await this.service.reply.getReplyById(topic.last_reply);
+    }
+
+    return {
+      topic,
+      author,
+      last_reply,
+    };
+  }
+
+  /*
    * 根据关键词，获取主题列表
    * @param {String} query 搜索关键词
    * @param {Object} opt 搜索选项

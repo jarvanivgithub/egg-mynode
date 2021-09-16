@@ -1,8 +1,9 @@
 module.exports = app => {
   const { router, controller, middleware, config } = app;
-  console.log('controller', controller);
 
-  const { site, sign } = controller;
+  const { site, sign, message, page } = controller;
+
+  const userRequired = middleware.userRequired();
 
   const createUserLimit = middleware.createUserLimit(config.create_user_per_ip);
 
@@ -25,4 +26,10 @@ module.exports = app => {
 
   router.get('/signin', sign.showLogin); // 进入登录页面
   router.post('/passport/local', localStrategy);
+  router.all('/signout', sign.signout); // 登出
+
+  // message controler
+  router.get('/my/messages', userRequired, message.index); // 用户个人的所有消息页
+
+  router.get('/getstart', page.getstart);
 };

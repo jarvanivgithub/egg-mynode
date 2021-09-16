@@ -1,5 +1,29 @@
+
+const MarkdownIt = require('markdown-it');
 const bcrypt = require('bcryptjs');
+const jsxss = require('xss');
 const validator = require('validator');
+
+
+// Set default options
+const md = new MarkdownIt();
+
+const myxss = new jsxss.FilterXSS({
+  onIgnoreTagAttr(tag, name, value) {
+    // 让 prettyprint 可以工作
+    if (tag === 'pre' && name === 'class') {
+      return name + '="' + jsxss.escapeAttrValue(value) + '"';
+    }
+  },
+});
+
+exports.markdown = text => {
+  return (
+    '<div class="markdown-text">' +
+    myxss.process(md.render(text || '')) +
+    '</div>'
+  );
+};
 
 exports.escapeSignature = signature => {
   return signature
