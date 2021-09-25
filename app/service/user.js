@@ -4,6 +4,30 @@ const uuid = require('uuid');
 
 class UserService extends Service {
   /*
+   * 根据用户名列表查找用户列表
+   * @param {Array} names 用户名列表
+   * @return {Promise[users]} 承载用户列表的 Promise 对象
+   */
+  async getUsersByNames(names) {
+    if (names.length === 0) {
+      return [];
+    }
+
+    const query = { loginname: { $in: names } };
+    return this.ctx.model.User.find(query).exec();
+  }
+
+  /**
+   * 根据用户名查找用户
+   * @param {String} loginName 登录用户名
+   * @return {Promise[user]} 承载用户的 Promise 对象
+   */
+  getUserByLoginName(loginName) {
+    const query = { loginname: new RegExp(`^${loginName}$`, 'i') };
+    return this.ctx.model.User.findOne(query).exec();
+  }
+
+  /*
    * 根据用户ID，查找用户
    * @param {String} id 用户ID
    * @return {Promise[user]} 承载用户的 Promise 对象
@@ -45,6 +69,19 @@ class UserService extends Service {
       utility.md5(email.toLowerCase()) +
       '?size=48'
     );
+  }
+
+  /**
+   * 发表主题增加积分和发表数量
+   * @param {*} id 用户id
+   * @param {Number} score 新增积分
+   * @param {Number} replyCount 新增发表数量
+   * @return {Promise[user]} user保存结果
+   */
+  incrementScoreAndReplyCount(id, score, replyCount) {
+    const query = { _id: id };
+    const update = { $inc: { score, reply_count: replyCount } };
+    return this.ctx.model.User.findByIdAndUpdate(query, update).exec();
   }
 }
 

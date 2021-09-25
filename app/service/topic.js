@@ -59,13 +59,80 @@ class TopicService extends Service {
     return topics.filter(topic => !!topic.author);
   }
 
-
   /*
    * 获取关键词能搜索到的主题数量
    * @param {String} query 搜索关键词
    */
   getCountByQuery(query) {
     return this.ctx.model.Topic.count(query).exec();
+  }
+
+  /**
+   *
+   * @param {String} title 主题标题
+   * @param {String} content 主题内容
+   * @param {String} tab 主题所属类型
+   * @param {*} authorId 作者id
+   * @return {Promise[topic]} topic保存结果
+   */
+  newAndSave(title, content, tab, authorId) {
+    const topic = new this.ctx.model.Topic();
+    topic.title = title;
+    topic.content = content;
+    topic.tab = tab;
+    topic.author_id = authorId;
+
+    return topic.save();
+  }
+
+  /*
+   * 获取所有信息的主题
+   * Callback:
+   * - err, 数据库异常
+   * - message, 消息
+   * - topic, 主题
+   * - author, 主题作者
+   * - replies, 主题的回复
+   * @param {String} id 主题ID
+   * @param {Function} callback 回调函数
+   */
+  async getFullTopic(id) {
+    const query = { _id: id, deleted: false };
+    const topic = await this.ctx.model.Topic.findOne(query);
+
+    if (!topic) return [];
+
+    topic.linkedContent = this.service.at.linkUsers(topic.content);
+
+    const author = await this.ctx.model.User.find(topic.author_id);
+    if (!author) return [];
+
+    const replies = await this.ctx.service.reply.getRepliesByTopicId(topic._id);
+    return [ topic, author, replies ];
+  }
+
+  incrementVisitCount(id) {
+    const query = { _id: id };
+    const update = { $inc: { visit_count: 1 } };
+    return this.ctx.model.Topic.findByIdAndUpdate(query, update).exec();
+  }
+
+  /*
+   * 更新主题的最后回复信息
+   * @param {String} topicId 主题ID
+   * @param {String} replyId 回复ID
+   * @param {Function} callback 回调函数
+   */
+  updateLastReply(topicId, replyId) {
+    const update = {
+      last_reply: replyId,
+      last_reply_at: new Date(),
+      $inc: {
+        reply_count: 1,
+      },
+    };
+    const opts = { new: true };
+    return this.ctx.model.Topic.findByIdAndUpdate(topicId, update, opts).exec();
   }
 }
 

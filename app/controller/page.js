@@ -6,6 +6,17 @@ class PageController extends Controller {
       layout: 'layout.html',
     });
   }
+
+  async api() {
+    await this.ctx.render('static/api', { pageTitle: 'API' }, {
+      layout: 'layout.html',
+    });
+  }
+  async about() {
+    await this.ctx.render('static/about', { pageTitle: '关于我们' }, {
+      layout: 'layout.html',
+    });
+  }
 }
 
 module.exports = PageController;

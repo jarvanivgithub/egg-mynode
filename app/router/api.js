@@ -1,6 +1,5 @@
-module.exports = app => {
-  const apiV1Router = app.router.namespace('/api/v1');
-  console.log('apiV1Router', apiV1Router);
+module.exports = () => {
+  // const apiV1Router = app.router.namespace('/api/v1');
 
   // const { controller, middleware } = app;
 

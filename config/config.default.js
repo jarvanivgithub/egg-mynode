@@ -87,6 +87,10 @@ module.exports = appInfo => {
     },
   };
 
+  config.topic = {
+    perDayPerUserLimitCount: 10,
+  };
+
   config.list_topic_count = 20;
 
   // 每个 IP 每天可创建用户数

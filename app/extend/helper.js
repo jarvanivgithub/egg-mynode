@@ -3,7 +3,7 @@ const MarkdownIt = require('markdown-it');
 const bcrypt = require('bcryptjs');
 const jsxss = require('xss');
 const validator = require('validator');
-
+const moment = require('moment');
 
 // Set default options
 const md = new MarkdownIt();
@@ -54,6 +54,12 @@ exports.proxy = function(url) {
   return url;
   // 当 google 和 github 封锁严重时，则需要通过服务器代理访问它们的静态资源
   // return '/agent?url=' + encodeURIComponent(url);
+};
+
+exports.ago = function(date) {
+  date = moment(date);
+
+  return date.fromNow();
 };
 
 exports.validateId = str => {
