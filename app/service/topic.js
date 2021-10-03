@@ -104,7 +104,7 @@ class TopicService extends Service {
 
     topic.linkedContent = this.service.at.linkUsers(topic.content);
 
-    const author = await this.ctx.model.User.find(topic.author_id);
+    const author = await this.ctx.service.user.getUserById(topic.author_id);
     if (!author) return [];
 
     const replies = await this.ctx.service.reply.getRepliesByTopicId(topic._id);
@@ -133,6 +133,48 @@ class TopicService extends Service {
     };
     const opts = { new: true };
     return this.ctx.model.Topic.findByIdAndUpdate(topicId, update, opts).exec();
+  }
+
+  /**
+   * 增加该主题被保存数
+   * @param {*} id 主题id
+   * @return {Promise[Topic]} topic保存结果
+   */
+  incrementCollectCount(id) {
+    const query = { _id: id };
+    const update = { $inc: { collect_count: 1 } };
+    return this.ctx.model.Topic.findByIdAndUpdate(query, update).exec();
+  }
+
+  /*
+   * 根据主题ID，查找一条主题
+   * @param {String} id 主题ID
+   * @param {Function} callback 回调函数
+   */
+  getTopic(id) {
+    return this.ctx.model.Topic.findOne({ _id: id }).exec();
+  }
+
+  /*
+   * 将当前主题的回复计数减1，并且更新最后回复的用户，删除回复时用到
+   * @param {String} id 主题ID
+   */
+  async reduceCount(id) {
+    const update = { $inc: { reply_count: -1 } };
+    const reply = await this.service.reply.getLastReplyByTopId(id);
+    if (reply) {
+      update.last_reply = reply._id;
+    } else {
+      update.last_reply = null;
+    }
+    const opts = { new: true };
+
+    const topic = await this.ctx.model.Topic.findByIdAndUpdate(id, update, opts).exec();
+    if (!topic) {
+      throw new Error('该主题不存在');
+    }
+
+    return topic;
   }
 }
 

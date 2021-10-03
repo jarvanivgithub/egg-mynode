@@ -130,6 +130,38 @@ class UserController extends Controller {
       return showMessage('密码已被修改。', user, true);
     }
   }
+
+  async listTopics() {
+    const { ctx, service, config } = this;
+    const user_name = ctx.params.name;
+    const page = Number(ctx.query.page) || 1;
+    const limit = config.list_topic_count;
+
+    const user = await service.user.getUserByLoginName(user_name);
+
+    if (!user) {
+      ctx.status = 404;
+      ctx.message = '这个用户不存在！';
+      return;
+    }
+
+    const query = { author_id: user._id };
+    const opt = { skip: (page - 1) * limit, limit, sort: '-create_at' };
+    const [ topics, all_topic_count ] = await Promise.all([
+      service.topic.getTopicsByQuery(query, opt),
+      service.topic.getCountByQuery(query),
+    ]);
+    const pages = Math.ceil(all_topic_count / limit);
+
+    await ctx.render('user/topics', {
+      user,
+      topics,
+      current_page: page,
+      pages,
+    }, {
+      layout: 'layout.html',
+    });
+  }
 }
 
 module.exports = UserController;

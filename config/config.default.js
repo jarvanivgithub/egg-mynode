@@ -1,6 +1,7 @@
 /* eslint valid-jsdoc: "off" */
 
 'use strict';
+const path = require('path');
 
 /**
  * @param {Egg.EggAppInfo} appInfo app info
@@ -47,6 +48,13 @@ module.exports = appInfo => {
   // add your user config here
   const userConfig = {
     // myAppName: 'egg',
+  };
+
+  // 文件上传配置
+  // 注：如果填写 qn_access，则会上传到 7牛，以下配置无效
+  config.upload = {
+    path: path.join(__dirname, '../app/public/upload/'),
+    url: '/public/upload/',
   };
 
   config.view = {

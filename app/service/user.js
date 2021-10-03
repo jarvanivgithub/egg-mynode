@@ -83,6 +83,17 @@ class UserService extends Service {
     const update = { $inc: { score, reply_count: replyCount } };
     return this.ctx.model.User.findByIdAndUpdate(query, update).exec();
   }
+
+  /**
+   * 增加收藏主题数量
+   * @param {*} id 用户id
+   * @return {Promise[user]} user保存结果
+   */
+  incrementCollectTopicCount(id) {
+    const query = { _id: id };
+    const update = { $inc: { collect_topic_count: 1 } };
+    return this.ctx.model.User.findByIdAndUpdate(query, update).exec();
+  }
 }
 
 module.exports = UserService;

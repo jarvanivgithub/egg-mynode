@@ -19,7 +19,9 @@
     <div class='inner'>
       <% if (typeof author_other_topics === 'undefined' || author_other_topics.length > 0) { %>
       <ul class='unstyled'>
-        <%- include('./small.ejs', { collection: author_other_topics, as: 'topic' }) %>
+        <% for(let i = 0; i < author_other_topics.length; i++) { %>
+        <%- include('./small.ejs', { topic: author_other_topics[i] }) %>
+        <% } %>
       </ul>
       <% } else { %>
       <p>无</p>
@@ -34,7 +36,9 @@
     <div class='inner'>
       <% if (typeof no_reply_topics !== 'undefined' && no_reply_topics.length > 0) { %>
       <ul class='unstyled'>
-        <%- include('./small.ejs', { collection: no_reply_topics, as: 'topic' }) %>
+        <% for(let i = 0; i < no_reply_topics.length; i++) { %>
+        <%- include('./small.ejs', { topic: no_reply_topics[i] }) %>
+        <% } %>
       </ul>
       <% } else { %>
       <p>无</p>

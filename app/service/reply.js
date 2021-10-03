@@ -9,7 +9,7 @@ class ReplyService extends Service {
   async getReplyById(id) {
     if (!id) return null;
 
-    const reply = this.ctx.model.Reply.findOne({ _id: id }).exec();
+    const reply = await this.ctx.model.Reply.findOne({ _id: id }).exec();
 
     if (!reply) return null;
 
@@ -74,6 +74,18 @@ class ReplyService extends Service {
     await reply.save();
 
     return reply;
+  }
+
+
+  /*
+   * 根据topicId查询到最新的一条未删除回复
+   * @param topicId 主题ID
+   * @return {Promise[reply]} 承载 reply 的 Promise 对象
+   */
+  getLastReplyByTopId(topicId) {
+    const query = { topic_id: topicId, deleted: false };
+    const opts = { sort: { create_at: -1 }, limit: 1 };
+    return this.ctx.model.Reply.findOne(query, '_id', opts).exec();
   }
 }
 

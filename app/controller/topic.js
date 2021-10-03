@@ -1,5 +1,10 @@
 const Controller = require('egg').Controller;
 const _ = require('lodash');
+const uuidv1 = require('uuid').v1;
+const path = require('path');
+const fs = require('fs');
+const awaitWriteStream = require('await-stream-ready').write;
+const sendToWormhole = require('stream-wormhole');
 
 class TopicController extends Controller {
   /**
@@ -131,6 +136,234 @@ class TopicController extends Controller {
 
     ctx.redirect('/topic/' + topic._id);
   }
+
+  /**
+   * 显示编辑页面
+   */
+  async showEdit() {
+    const { ctx, service, config } = this;
+    const topic_id = ctx.params.tid;
+
+    const { topic } = await service.topic.getTopicById(topic_id);
+
+    if (!topic) {
+      ctx.status = 404;
+      ctx.message = 'topic is not found or has been deleted';
+      return;
+    }
+
+    if (String(topic.author_id) === String(ctx.user._id) || ctx.user.is_admin) {
+      await ctx.render('topic/edit', {
+        action: 'edit',
+        topic_id: topic._id,
+        title: topic.title,
+        content: topic.content,
+        tab: topic.tab,
+        tabs: config.tabs,
+      }, {
+        layout: 'layout.html',
+      });
+    } else {
+      ctx.status = 401;
+      ctx.message = 'sorry, you cannot edit topic';
+    }
+  }
+
+  /**
+   * 编辑主题
+   */
+  async update() {
+    const { ctx, service, config } = this;
+
+    const topic_id = ctx.params.tid;
+    let { title, tab, content } = ctx.request.body;
+
+    const { topic } = await service.topic.getTopicById(topic_id);
+    if (!topic) {
+      ctx.status = 404;
+      ctx.message = '此话题不存在或已被删除。';
+      return;
+    }
+
+    if (
+      topic.author_id.toString() === ctx.user._id.toString() || ctx.user.is_admin
+    ) {
+      title = title.trim();
+      tab = tab.trim();
+      content = content.trim();
+
+      // 验证
+      let editError;
+      if (title === '') {
+        editError = '标题不能是空的。';
+      } else if (title.length < 5 || title.length > 100) {
+        editError = '标题字数太多或太少。';
+      } else if (!tab) {
+        editError = '必须选择一个版块。';
+      } else if (content === '') {
+        editError = '内容不可为空。';
+      }
+      // END 验证
+
+      if (editError) {
+        await ctx.render('topic/edit', {
+          action: 'edit',
+          edit_error: editError,
+          topic_id: topic._id,
+          content,
+          tabs: config.tabs,
+        }, {
+          layout: 'layout.html',
+        });
+        return;
+      }
+
+      // 保存话题
+      topic.title = title;
+      topic.content = content;
+      topic.tab = tab;
+      topic.update_at = new Date();
+
+      await topic.save();
+
+      await service.at.sendMessageToMentionUsers(
+        content,
+        topic._id,
+        ctx.user._id
+      );
+
+      ctx.redirect('/topic/' + topic._id);
+    } else {
+      ctx.status = 403;
+      ctx.message = '对不起，你不能编辑此话题。';
+    }
+  }
+
+  /**
+   * 删除主题
+   */
+  async delete() {
+    const { ctx, service } = this;
+    const topic_id = ctx.params.tid;
+
+    const [ topic, author ] = await service.topic.getFullTopic(topic_id);
+    console.log(topic, author);
+
+    if (!topic) {
+      ctx.status = 422;
+      ctx.body = { message: '此话题不存在或已删除！', success: false };
+      return;
+    }
+
+    if (!ctx.user.is_admin && !topic.author_id.equals(ctx.user._id)) {
+      ctx.status = 403;
+      ctx.body = { message: '无权限', success: false };
+      return;
+    }
+
+    author.score -= 5;
+    author.topic_count -= 1;
+    await author.save();
+
+    topic.deleted = true;
+    await topic.save();
+
+    ctx.body = { message: '话题已被删除。', success: true };
+  }
+
+  /**
+   * 收藏主题
+   */
+  async collect() {
+    const { ctx, service } = this;
+    const topic_id = ctx.request.body.topic_id;
+
+    const topic = await service.topic.getTopicById(topic_id);
+    const user_id = ctx.user._id;
+    if (!topic) {
+      ctx.body = { status: 'fail' };
+      return;
+    }
+
+    const doc = await service.topicCollect.getTopicCollect(
+      user_id,
+      topic_id
+    );
+
+    if (doc) {
+      ctx.body = { status: 'fail' };
+      return;
+    }
+
+    await service.topicCollect.newAndSave(user_id, topic_id);
+    ctx.body = { status: 'success' };
+
+    await Promise.all([
+      service.user.incrementCollectTopicCount(user_id),
+      service.topic.incrementCollectCount(topic_id),
+    ]);
+  }
+
+  /**
+   * 取消收藏主题
+   */
+  async de_collect() {
+    const { ctx, service } = this;
+    const topic_id = ctx.request.body.topic_id;
+
+    const topic = await service.topic.getTopic(topic_id);
+    const user_id = ctx.user._id;
+
+    if (!topic) {
+      ctx.body = { status: 'fail' };
+      return;
+    }
+
+    const removeResult = await service.topicCollect.remove(
+      user_id,
+      topic_id
+    );
+
+    if (removeResult.n === 0) {
+      ctx.body = { status: 'fail' };
+      return;
+    }
+
+    const user = await service.user.getUserById(user_id);
+
+    user.collect_topic_count -= 1;
+    await user.save();
+
+    topic.collect_count -= 1;
+    await topic.save();
+
+    ctx.body = { status: 'success' };
+  }
+
+  /**
+   * 照片上传
+   */
+  async upload() {
+    const { ctx, config } = this;
+    const uid = uuidv1();
+    const stream = await ctx.getFileStream();
+    const filename = uid + path.extname(stream.filename).toLowerCase();
+
+    const target = path.join(config.upload.path, filename);
+    const writeStream = fs.createWriteStream(target);
+    try {
+      await awaitWriteStream(stream.pipe(writeStream));
+      ctx.body = {
+        success: true,
+        url: config.upload.url + filename,
+      };
+    } catch (error) {
+      await sendToWormhole(stream);
+      throw error;
+    }
+
+  }
 }
+
 
 module.exports = TopicController;
